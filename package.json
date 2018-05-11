@@ -1,0 +1,26 @@
+{
+  "name": "jira2v1",
+  "version": "1.0.0",
+  "description": "Moves defects in JIRA to VersionOne.",
+  "main": "jira2v1.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://bitbucket.org/jeffreythawkins/jira2v1/src/master/"
+  },
+  "keywords": [
+    "VersionOne",
+    "JIRA",
+    "Defects",
+    "Tasks"
+  ],
+  "author": "Jeff Hawkins",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "dotenv": "^5.0.1",
+    "escape-html": "^1.0.3"
+  }
+}
