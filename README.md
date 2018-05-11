@@ -1,6 +1,6 @@
 # jira2v1
 
-This node script moves matching Atlassian JIRA defects and creates a task for each on a specific story.
+This node script moves matching Atlassian JIRA defects and creates a task for each on a VersionOne story.
 
 ## Install
 
