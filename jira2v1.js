@@ -91,7 +91,7 @@ function createNewV1TaskRequestBody(defect) {
       `<Asset href="/rest-1.v1/Data/Story/${STORY_ID}" idref="Story:${STORY_ID}" />`,
       `</Relation>`,
       `</Asset>`
-  ].join("");
+  ].join('');
   }
 
 async function createV1TasksFromDefects(defects) {
