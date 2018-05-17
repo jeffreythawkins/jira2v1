@@ -4,39 +4,61 @@ const escape = require('escape-html');
 
 dotenv.config();
 
+// REQUIRED .env SETTINGS
 const {JIRAUSER, JIRAPASS, V1USER, V1PASS} = process.env; // Your account usernames and passwords.
 axios.defaults.auth = {username: V1USER, password: V1PASS};
 
 const JIRA_BASE_URI = process.env.JIRA_BASE_URI; // http://www.yourjira.com
 const JIRA_JQL = process.env.JIRA_JQL; // 'project = abc AND status in (open) and issuetype in (defect)'
-const JIRA_UNSET_PRIORITY_VALUE = process.env.JIRA_UNSET_PRIORITY_VALUE || 6; // Your organization's "Not Set" equivalent. Default: 6
 const V1_BASE_URI = process.env.V1_BASE_URI; // http://www.yourv1.com
 const V1_STORY_ID = process.env.V1_STORY_ID; // 876543 (Not the S-12345 looking thing)
-// const V1_TASK_HOURS = process.env.V1_TASK_HOURS || 4; // Default: 4
-const V1_TASK_DETAIL = process.env.V1_TASK_DETAIL || 'long'; // Default: 'long'; Options 'short'|'long'
 
+// VARIOUS CONSTANTS
+const JIRA_MAX_RESULTS = 50;
+const JIRA_DEFAULT_UNSET_PRIORITY_VALUE = 6; // Your organization's "Not Set" equivalent. Default: 6
+const V1_MAX_RESULTS = 50;
+const V1_DEFAULT_TASK_HOURS = 4;
+const V1_DEFAULT_TASK_DESCRIPTION_DETAIL = 'long'; // Default: 'long'; Options 'short'|'long'
+
+// OPTIONAL .env SETTINGS
+const V1_TASK_HOURS = process.env.V1_TASK_HOURS || V1_DEFAULT_TASK_HOURS;
+const V1_TASK_DESCRIPTION_DETAIL = process.env.V1_TASK_DETAIL || V1_DEFAULT_TASK_DESCRIPTION_DETAIL;
+const JIRA_UNSET_PRIORITY_VALUE = process.env.JIRA_UNSET_PRIORITY_VALUE || JIRA_DEFAULT_UNSET_PRIORITY_VALUE;
+
+// FULL URIs
 const V1_REST_TASK_URI = V1_BASE_URI + '/rest-1.v1/Data/Task';
 const V1_REST_LINK_URI = V1_BASE_URI + '/rest-1.v1/Data/Link';
 const V1_QUERY_STORY_URI = V1_BASE_URI + '/query.v1/Data/Story';
 const JIRA_URI = JIRA_BASE_URI + '/rest/api/2/search';
 
-const JIRA_MAX_RESULTS = 50;
-const V1_MAX_RESULTS = 50;
+// DEBUG
+const DEBUG_GET_JIRAS = (process.env.DEBUG_GET_JIRAS === 'true');
+if (DEBUG_GET_JIRAS) { console.log(`Debugging: DEBUG_GET_JIRAS`); }
 
+// MAIN
 getJiraDefects().then(defects => {
-  // // DEBUG: Just spit out what was fetched from JIRA
-  // defects.map((defect) => {
-  //   console.log(defect.title);
-  // });
-  // return;
+  if (DEBUG_GET_JIRAS) {
+    defects.map((defect) => {
+      console.log(defect.title);
+    });
+    return;
+  }
 
-  createV1TasksFromDefects(defects).then(tasks => {
-    tasks.map((task) => {
-      if (task) {
-        console.log(task);
+  if (defects.length > 0) {
+    createV1TasksFromDefects(defects).then(tasks => {
+      if (tasks.length > 0) {
+        tasks.map((task) => {
+          if (task) {
+            console.log(task);
+          }
+        });
+      } else {
+        console.log(`The ${defects.length} defects that match your search criteria have already been added.\n`);
       }
     });
-  });
+  } else {
+    console.log(`There are no defects that match your search criteria.\n${JIRA_JQL}\n`);
+  }
 });
 
 //
@@ -85,12 +107,12 @@ function transformDefect (defect) {
   let title = `P${priority} - ${defect.key} - ${escape(defect.fields.summary)}`;
   let description;
 
-  if (V1_TASK_DETAIL === 'short') {
+  if (V1_TASK_DESCRIPTION_DETAIL === 'short') {
     description = [
       `URL: ${link}`,
+      `Assignee: ${defect.fields.assignee.displayName}`,
       `Description:`,
-      `<![CDATA[${escape(defect.fields.description)}]]>`,
-      `Assignee: ${defect.fields.assignee.displayName}`
+      `<![CDATA[${escape(defect.fields.description)}]]>`
     ].join(`<![CDATA[<br/>]]>`);
   } else {
     description = [
@@ -181,7 +203,8 @@ function createNewV1TaskRequestBody (defect) {
     `<Asset href="/rest-1.v1/New/Task">`,
     `<Attribute name="Name" act="set">${defect.title}</Attribute>`,
     `<Attribute name="Description" act="set">${defect.description}</Attribute>`,
-    // set task hours with V1_TASK_HOURS
+    `<Attribute name="ToDo" act="set">${V1_TASK_HOURS}</Attribute>`,
+    `<Attribute name="DetailEstimate" act="set">${V1_TASK_HOURS}</Attribute>`,
     `<Relation name="Parent" act="set">`,
     `<Asset href="/rest-1.v1/Data/Story/${V1_STORY_ID}" idref="Story:${V1_STORY_ID}" />`,
     `</Relation>`,
@@ -215,7 +238,7 @@ function createNewV1LinkRequestBody (name, url, taskId) {
 }
 
 /* TODO:
-Use V1_TASK_HOURS to set the hour estimate and remaining hours on the created tasks
-Figure out how to get tasks created in the sort order returned by the JIRA query
-Enhance error handling
+1. Support story identification using "Story.Number" (S-123456). It code currently requires an OID.
+2. Sorting. The RESTful endpoint does honor the SORT options in JQL. The code could serialize the 
+   create to remove the parallel async creation of all tasks.
 */
