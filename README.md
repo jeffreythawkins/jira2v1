@@ -18,23 +18,24 @@ V1PASS={password}
 JIRAUSER={username}
 JIRAPASS={password}
 
-V1_BASE_URI = 'http://www.yourv1.com'
 JIRA_BASE_URI = 'http://www.yourjira.com'
-STORY_ID = 876543 (Not the S-12345 looking thing)
 JIRA_JQL = 'project = abc AND status in (open) AND type = Defect AND resolution = Unresolved'
+V1_STORY_ID = 876543 (Not the S-12345 looking thing)
+V1_BASE_URI = 'http://www.yourv1.com'
 ```
 
 Optional Entries:
 
 ```
 V1_TASK_HOURS={number of hours you would like each task to be. Default: 4}
-V1_TASK_DETAIL=short
+V1_TASK_DESCRIPTION_DETAIL={short or long. Default: long}
+JIRA_UNSET_PRIORITY_VALUE={Default: 6}
 ```
 
 ## Configure
 
 * Change the JIRA_JQL in the .env file. This is the JIRA query statement. The resulting defects that will be copied to V1 as Tasks with links.
-* Change the STORY_ID in the .env file. This is the target story where all tasks will be created. This is not the S-109579 looking thingy. It's the id found in the URL for the story if you click on it.
+* Change the V1_STORY_ID in the .env file. This is the target story where all tasks will be created. This is not the S-109579 looking thingy. It's the id found in the URL for the story if you click on it.
 
 
 ## Run
