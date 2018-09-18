@@ -29,7 +29,6 @@ Optional Entries:
 ```
 V1_TASK_HOURS={number of hours you would like each task to be. Default: 4}
 V1_TASK_DESCRIPTION_DETAIL={short or long. Default: long}
-JIRA_UNSET_PRIORITY_VALUE={Default: 6}
 ```
 
 ## Configure
