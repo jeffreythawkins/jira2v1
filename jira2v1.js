@@ -15,7 +15,6 @@ const V1_STORY_ID = process.env.V1_STORY_ID; // 876543 (Not the S-12345 looking 
 
 // VARIOUS CONSTANTS
 const JIRA_MAX_RESULTS = 50;
-const JIRA_DEFAULT_UNSET_PRIORITY_VALUE = 6; // Your organization's "Not Set" equivalent. Default: 6
 const V1_MAX_RESULTS = 50;
 const V1_DEFAULT_TASK_HOURS = 4;
 const V1_DEFAULT_TASK_DESCRIPTION_DETAIL = 'long'; // Default: 'long'; Options 'short'|'long'
@@ -23,7 +22,6 @@ const V1_DEFAULT_TASK_DESCRIPTION_DETAIL = 'long'; // Default: 'long'; Options '
 // OPTIONAL .env SETTINGS
 const V1_TASK_HOURS = process.env.V1_TASK_HOURS || V1_DEFAULT_TASK_HOURS;
 const V1_TASK_DESCRIPTION_DETAIL = process.env.V1_TASK_DETAIL || V1_DEFAULT_TASK_DESCRIPTION_DETAIL;
-const JIRA_UNSET_PRIORITY_VALUE = process.env.JIRA_UNSET_PRIORITY_VALUE || JIRA_DEFAULT_UNSET_PRIORITY_VALUE;
 
 // FULL URIs
 const V1_REST_TASK_URI = V1_BASE_URI + '/rest-1.v1/Data/Task';
@@ -98,13 +96,13 @@ function transformDefect (defect) {
   let key = defect.key;
   let url = JIRA_BASE_URI + `/browse/${defect.key}`;
   let link = createHTMLLink(url, url);
-  let priority = (defect.fields.priority && defect.fields.priority.id) ? parseInt(defect.fields.priority.id, 10) : '?';
 
-  if (typeof priority !== 'number' || priority >= JIRA_UNSET_PRIORITY_VALUE) {
-    priority = '?';
+  let priority = (defect.fields.priority && defect.fields.priority.name) ? defect.fields.priority.name : 'P?';
+  if (priority === 'Not Set') {
+    priority = 'P?';
   }
 
-  let title = `P${priority} - ${defect.key} - ${escape(defect.fields.summary)}`;
+  let title = `${priority} - ${defect.key} - ${escape(defect.fields.summary)}`;
   let description;
 
   if (V1_TASK_DESCRIPTION_DETAIL === 'short') {
@@ -190,7 +188,7 @@ async function createNewV1Task (defect) {
     let taskId = taskResponse.data.id;
     taskId = taskId.split(':')[1];
 
-    const linkId = await createNewV1Link(defect, taskId);
+    await createNewV1Link(defect, taskId);
 
     return `${taskId}: ${defect.title}`;
   } catch (err) {
@@ -239,6 +237,6 @@ function createNewV1LinkRequestBody (name, url, taskId) {
 
 /* TODO:
 1. Support story identification using "Story.Number" (S-123456). It code currently requires an OID.
-2. Sorting. The RESTful endpoint does honor the SORT options in JQL. The code could serialize the 
+2. Sorting. The RESTful endpoint does honor the SORT options in JQL. The code could serialize the
    create to remove the parallel async creation of all tasks.
 */
