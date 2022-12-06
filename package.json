@@ -1,7 +1,7 @@
 {
   "name": "jira2v1",
-  "version": "2.0.0",
-  "description": "Moves defects in JIRA to VersionOne.",
+  "version": "2.1.0",
+  "description": "Tool that copies JIRA issues to a VersionOne story.",
   "author": "Jeff Hawkins",
   "license": "ISC",
   "main": "jira2v1.js",

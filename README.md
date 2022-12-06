@@ -1,6 +1,10 @@
 # jira2v1
 
-This node script searches an Atlassian JIRA instance for defects and creates a task for each in a VersionOne story. It ignores JIRAs that may have already been added from a previous run.
+This node script searches an Atlassian JIRA instance for defects that match your provided query and creates a task for each with appropriate descriptions and links in a specified VersionOne story. It ignores JIRA IDs that may have already been added from a previous run. Logging will note what JIRAs were added to the designated story.
+
+Oftentimes, teams have recurring tasks that are helpful to be tracked. 
+
+- One such is maintenance time (the time spent facilitating the work of other teams or maintaining shared code--read: "the things that you do each sprint for others that are not tracked in designated story work"). This task is automatically added, with instructions for its use. Configuration flag: `CREATE_MAINTENANCE_TASK`. To disable, set to `false`.
 
 ## Install
 
@@ -29,12 +33,13 @@ Optional Entries:
 ```
 V1_TASK_HOURS={number of hours you would like each task to be. Default: 4}
 V1_TASK_DESCRIPTION_DETAIL={short or long. Default: long}
+CREATE_MAINTENANCE_TASK={false or true. Default: true}
 ```
 
 ## Configure
 
-* Change the JIRA_JQL in the .env file. This is the JIRA query statement. The resulting defects that will be copied to V1 as Tasks with links.
-* Change the V1_STORY_ID in the .env file. This is the target story where all tasks will be created. This is not the S-109579 looking thingy. It's the id found in the URL for the story if you click on it.
+* ONCE: Set the `JIRA_JQL` in the .env file to match all JIRAs you would like to have imported. This is the JIRA query statement. The resulting defects that will be copied to V1 as Tasks with links.
+* EVERY SPRINT: Set the `V1_STORY_ID` in the .env file. This is the target story where all tasks will be created. This is not the S-109579 looking thingy. It's the id found in query parameter portion of the URL (immediately after the `%3A`) for the story if you open it in a new tab.
 
 
 ## Run
@@ -49,6 +54,13 @@ or
 node jira2v1
 ```
 
-## Observe
+then enjoy basking in the glow of the automatically created tasks.
 
-Take a long draw on the beverage of your choice. Your flatmate might appreciate a comment about the lovely weather. At your leisure, inspect the taskboard, and note the recent additions.
+## Debugging
+
+- `DEBUG_GET_JIRAS`: Setting this to 'true' in your `.env` file will log out the processed defects that the script would attempt to create as tasks. Does not attempt to create the tasks.
+- `DEBUG_PROCESSING`: Setting this to 'true' in your `.env` file will log out the fetched JIRAs versus the processed defects that the script would attempt to create as tasks. Does not attempt to create the tasks.
+
+## Warnings
+
+- If you attempt to run this script against a story that is closed, tasks will still be added.
