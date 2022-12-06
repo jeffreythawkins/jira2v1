@@ -22,6 +22,7 @@ const V1_DEFAULT_TASK_DESCRIPTION_DETAIL = 'long'; // Default: 'long'; Options '
 // OPTIONAL .env SETTINGS
 const V1_TASK_HOURS = process.env.V1_TASK_HOURS || V1_DEFAULT_TASK_HOURS;
 const V1_TASK_DESCRIPTION_DETAIL = process.env.V1_TASK_DETAIL || V1_DEFAULT_TASK_DESCRIPTION_DETAIL;
+const CREATE_MAINTENANCE_TASK = !!(process.env.CREATE_MAINTENANCE_TASK === 'true');
 
 // FULL URIs
 const V1_REST_TASK_URI = V1_BASE_URI + '/rest-1.v1/Data/Task';
@@ -31,15 +32,31 @@ const JIRA_URI = JIRA_BASE_URI + '/rest/api/2/search';
 
 // DEBUG
 const DEBUG_GET_JIRAS = (process.env.DEBUG_GET_JIRAS === 'true');
-if (DEBUG_GET_JIRAS) { console.log(`Debugging: DEBUG_GET_JIRAS`); }
+const DEBUG_PROCESSING = (process.env.DEBUG_PROCESSING === 'true');
 
 // MAIN
 getJiraDefects().then(defects => {
   if (DEBUG_GET_JIRAS) {
     defects.map((defect) => {
-      console.log(defect.title);
+      console.log(defect);
     });
     return;
+  }
+
+  const customTaskList = createCustomTasks();
+
+  if (customTaskList.length > 0) {
+    createV1TasksFromDefects(customTaskList).then(tasks => {
+      if (tasks.length > 0) {
+        tasks.map((task) => {
+          if (task) {
+            console.log(task);
+          }
+        });
+      } else {
+        console.log(`${customTaskList.length} matching custom task(s) have already been added.\n`);
+      }
+    });
   }
 
   if (defects.length > 0) {
@@ -51,7 +68,7 @@ getJiraDefects().then(defects => {
           }
         });
       } else {
-        console.log(`The ${defects.length} defects that match your search criteria have already been added.\n`);
+        console.log(`The ${defects.length} defect(s) that match your search criteria have already been added.\n`);
       }
     });
   } else {
@@ -128,6 +145,23 @@ function transformDefect (defect) {
   return {key, url, title, description};
 }
 
+function createCustomTasks () {
+  let customTaskList = [];
+
+  if (CREATE_MAINTENANCE_TASK) {
+    customTaskList.push(
+      {
+        key: 'ENG: Maintenance',
+        title: 'ENG: Maintenance',
+        description: 'This task is meant for tracking cumulative effort spent assisting others and maintaining shared components, build processes, or other effort that benefits external teams or the organization as a whole.<![CDATA[<br/><br/>]]>Time spent in maintenance activities: (extra notes can also be added below).<![CDATA[<br/><ul><li>]]>TEAM_MEMBER: 0<![CDATA[</li></ul><br/>]]>TODO: At sprint end, update the task estimate hours to be the sum of all contributions for that sprint and close.',
+        maintenanceTask: true
+      }
+    );
+  }
+
+  return customTaskList;
+}
+
 function createHTMLLink (href, text) {
   return `<![CDATA[<a href=${href}>${text}</a>]]>`;
 }
@@ -184,7 +218,15 @@ function applyFilter (defects, tasks) {
 async function createNewV1Task (defect) {
   try {
     let taskRequestBody = createNewV1TaskRequestBody(defect);
+
+    if (DEBUG_PROCESSING) {
+      console.dir(defect);
+      console.log(taskRequestBody);
+      return;
+    }
+
     const taskResponse = await axios.post(V1_REST_TASK_URI, taskRequestBody);
+
     let taskId = taskResponse.data.id;
     taskId = taskId.split(':')[1];
 
@@ -197,12 +239,15 @@ async function createNewV1Task (defect) {
 }
 
 function createNewV1TaskRequestBody (defect) {
+  const todo = (defect.maintenanceTask) ? '' : `<Attribute name="ToDo" act="set">${V1_TASK_HOURS}</Attribute>`;
+  const estimate = (defect.maintenanceTask) ? '' : `<Attribute name="DetailEstimate" act="set">${V1_TASK_HOURS}</Attribute>`;
+
   return [
     `<Asset href="/rest-1.v1/New/Task">`,
     `<Attribute name="Name" act="set">${defect.title}</Attribute>`,
     `<Attribute name="Description" act="set">${defect.description}</Attribute>`,
-    `<Attribute name="ToDo" act="set">${V1_TASK_HOURS}</Attribute>`,
-    `<Attribute name="DetailEstimate" act="set">${V1_TASK_HOURS}</Attribute>`,
+    `${todo}`,
+    `${estimate}`,
     `<Relation name="Parent" act="set">`,
     `<Asset href="/rest-1.v1/Data/Story/${V1_STORY_ID}" idref="Story:${V1_STORY_ID}" />`,
     `</Relation>`,
